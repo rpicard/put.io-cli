@@ -35,23 +35,29 @@ type Client struct {
 	Token string
 }
 
-func (c *Client) Get(path string) (resp *http.Response, err error) {
-	return http.Get(fmt.Sprint("https://api.put.io/v2/", path, "?oauth_token=", c.Token))
+func (c *Client) Do(method string, path string) (resp *http.Response, err error) {
+    req, err := http.NewRequest(method, fmt.Sprint("https://api.put.io/v2/", path, "?oauth_token=", c.Token), nil)
+
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    var client http.Client
+
+    return client.Do(req)
 }
 
-func (c *Client) ListFiles() FileList{
-	resp, err := c.Get("files/list")
+func (c *Client) ListFiles() FileList {
+	resp, err := c.Do("GET", "files/list")
 
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	var fl FileList
@@ -65,5 +71,9 @@ func main() {
 	c := new(Client)
 	c.Token = os.Args[1]
 
-	c.ListFiles()
+    files := c.ListFiles().Files
+
+    for _, file := range files {
+        fmt.Println(file.Id, file.Name)
+    }
 }
