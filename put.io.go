@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+    "io"
 	"log"
 	"net/http"
     "os"
@@ -64,6 +65,10 @@ func (c *Client) ListFiles() FileList {
 	err = json.Unmarshal(body, &fl)
 
     return fl
+}
+
+func (c *Client) DownloadFile(id int) {
+
 }
 
 func main() {
