@@ -3,11 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/jawher/mow.cli"
 	"io/ioutil"
-    "io"
 	"log"
 	"net/http"
-    "os"
+	"os"
 )
 
 type FileList struct {
@@ -36,16 +36,40 @@ type Client struct {
 	Token string
 }
 
+func main() {
+
+	prog := cli.App("put.io", "Access files from your put.io account")
+
+	// global options
+	token := prog.StringOpt("t token", "", "your oauth token from put.io")
+
+	// commands
+	prog.Command("list", "list all files in your put.io account", func(cmd *cli.Cmd) {
+
+		c := new(Client)
+		c.Token = *token
+
+		files := c.ListFiles().Files
+
+		for _, file := range files {
+			fmt.Println(file.Id, file.Name)
+		}
+	})
+
+	prog.Run(os.Args)
+
+}
+
 func (c *Client) Do(method string, path string) (resp *http.Response, err error) {
-    req, err := http.NewRequest(method, fmt.Sprint("https://api.put.io/v2/", path, "?oauth_token=", c.Token), nil)
+	req, err := http.NewRequest(method, fmt.Sprint("https://api.put.io/v2/", path, "?oauth_token=", c.Token), nil)
 
-    if err != nil {
-        log.Fatal(err)
-    }
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    var client http.Client
+	var client http.Client
 
-    return client.Do(req)
+	return client.Do(req)
 }
 
 func (c *Client) ListFiles() FileList {
@@ -64,21 +88,5 @@ func (c *Client) ListFiles() FileList {
 	var fl FileList
 	err = json.Unmarshal(body, &fl)
 
-    return fl
-}
-
-func (c *Client) DownloadFile(id int) {
-
-}
-
-func main() {
-
-	c := new(Client)
-	c.Token = os.Args[1]
-
-    files := c.ListFiles().Files
-
-    for _, file := range files {
-        fmt.Println(file.Id, file.Name)
-    }
+	return fl
 }
