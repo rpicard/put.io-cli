@@ -32,10 +32,6 @@ type File struct {
 	Size              int    `json:"size"`
 }
 
-type Client struct {
-	Token string
-}
-
 func main() {
 
 	prog := cli.App("put.io", "Access files from your put.io account")
@@ -49,6 +45,7 @@ func main() {
 		c := new(Client)
 		c.Token = *token
 
+        // get the list of files and print out the info we care about for each
 		files := c.ListFiles().Files
 
 		for _, file := range files {
@@ -58,6 +55,10 @@ func main() {
 
 	prog.Run(os.Args)
 
+}
+
+type Client struct {
+	Token string
 }
 
 func (c *Client) Do(method string, path string) (resp *http.Response, err error) {
