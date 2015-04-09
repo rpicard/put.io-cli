@@ -34,7 +34,7 @@ type File struct {
 
 func main() {
 
-	prog := cli.App("put.io", "Access files from your put.io account")
+	prog := cli.App("put.io", "access files from your put.io account")
 
 	// global options
 	token := prog.StringOpt("t token", "", "your oauth token from put.io")
