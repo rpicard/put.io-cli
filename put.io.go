@@ -183,7 +183,7 @@ func (c *Client) ListFiles(parent int) {
 	err = json.Unmarshal(body, &fl)
 
 	// use a text/tabwriter to align things when they are printed
-	w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
 
 	for _, file := range fl.Files {
 		fmt.Fprintf(w, "%s\t%d\t%s\n", file.ContentType, file.Id, file.Name)
