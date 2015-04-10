@@ -7,10 +7,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-    "net/url"
+	"net/url"
 	"os"
-    "strconv"
-    "text/tabwriter"
+	"strconv"
+	"text/tabwriter"
 )
 
 type FileList struct {
@@ -45,18 +45,18 @@ func main() {
 	// commands
 	prog.Command("list", "list all files in your put.io account", func(cmd *cli.Cmd) {
 
-        cmd.Spec = "[DIR]"
+		cmd.Spec = "[DIR]"
 
-        parent := cmd.IntArg("DIR", 0, "the id of the directory to list")
+		parent := cmd.IntArg("DIR", 0, "the id of the directory to list")
 
-        cmd.Action = func() {
+		cmd.Action = func() {
 
-            c := new(Client)
-            c.Token = *token
+			c := new(Client)
+			c.Token = *token
 
-            // get the list of files and print out the info we care about for each
-            c.ListFiles(*parent)
-        }
+			// get the list of files and print out the info we care about for each
+			c.ListFiles(*parent)
+		}
 	})
 
 	prog.Run(os.Args)
@@ -67,25 +67,25 @@ type Client struct {
 	Token string
 }
 
-func (c *Client) ListFiles(parent int)  {
+func (c *Client) ListFiles(parent int) {
 
-    v := url.Values{}
-    v.Set("oauth_token", c.Token)
-    v.Set("parent_id", strconv.Itoa(parent))
+	v := url.Values{}
+	v.Set("oauth_token", c.Token)
+	v.Set("parent_id", strconv.Itoa(parent))
 
-    req := &http.Request{
-        Method: "GET",
-        Host:   "api.put.io",
-        URL: &url.URL{
-            Host: "api.put.io",
-            Scheme: "https",
-            Path: "/v2/files/list",
-            RawQuery: v.Encode(),
-        },
-    }
+	req := &http.Request{
+		Method: "GET",
+		Host:   "api.put.io",
+		URL: &url.URL{
+			Host:     "api.put.io",
+			Scheme:   "https",
+			Path:     "/v2/files/list",
+			RawQuery: v.Encode(),
+		},
+	}
 
-    var client http.Client
-    resp, err := client.Do(req)
+	var client http.Client
+	resp, err := client.Do(req)
 
 	if err != nil {
 		log.Fatal(err)
@@ -100,12 +100,12 @@ func (c *Client) ListFiles(parent int)  {
 	var fl FileList
 	err = json.Unmarshal(body, &fl)
 
-    // use a text/tabwriter to align things when they are printed
-    w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
+	// use a text/tabwriter to align things when they are printed
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
 
-    for _, file := range fl.Files {
-        fmt.Fprintf(w, "%s\t%d\t%s\n", file.ContentType, file.Id, file.Name)
-    }
+	for _, file := range fl.Files {
+		fmt.Fprintf(w, "%s\t%d\t%s\n", file.ContentType, file.Id, file.Name)
+	}
 
-    w.Flush()
+	w.Flush()
 }
