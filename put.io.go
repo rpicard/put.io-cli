@@ -7,7 +7,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+    "net/url"
 	"os"
+    "strconv"
 )
 
 type FileList struct {
@@ -42,15 +44,15 @@ func main() {
 	// commands
 	prog.Command("list", "list all files in your put.io account", func(cmd *cli.Cmd) {
 
+        parent := cmd.IntArg("DIR", 0, "the id of the directory to list")
+
+        fmt.Println(*parent)
+
 		c := new(Client)
 		c.Token = *token
 
         // get the list of files and print out the info we care about for each
-		files := c.ListFiles().Files
-
-		for _, file := range files {
-			fmt.Println(file.Id, file.Name)
-		}
+		c.ListFiles(*parent)
 	})
 
 	prog.Run(os.Args)
@@ -61,20 +63,27 @@ type Client struct {
 	Token string
 }
 
-func (c *Client) Do(method string, path string) (resp *http.Response, err error) {
-	req, err := http.NewRequest(method, fmt.Sprint("https://api.put.io/v2/", path, "?oauth_token=", c.Token), nil)
+func (c *Client) ListFiles(parent int)  {
 
-	if err != nil {
-		log.Fatal(err)
-	}
+    v := url.Values{}
+    v.Set("oauth_token", c.Token)
+    v.Set("parent_id", strconv.Itoa(parent))
 
-	var client http.Client
+    fmt.Println(v.Encode())
 
-	return client.Do(req)
-}
+    req := &http.Request{
+        Method: "GET",
+        Host:   "api.put.io",
+        URL: &url.URL{
+            Host: "api.put.io",
+            Scheme: "https",
+            Path: "/v2/files/list",
+            RawQuery: v.Encode(),
+        },
+    }
 
-func (c *Client) ListFiles() FileList {
-	resp, err := c.Do("GET", "files/list")
+    var client http.Client
+    resp, err := client.Do(req)
 
 	if err != nil {
 		log.Fatal(err)
@@ -89,5 +98,7 @@ func (c *Client) ListFiles() FileList {
 	var fl FileList
 	err = json.Unmarshal(body, &fl)
 
-	return fl
+    for _, file := range fl.Files {
+        fmt.Println(file.Id, file.Name)
+    }
 }
