@@ -10,6 +10,7 @@ import (
     "net/url"
 	"os"
     "strconv"
+    "text/tabwriter"
 )
 
 type FileList struct {
@@ -44,15 +45,18 @@ func main() {
 	// commands
 	prog.Command("list", "list all files in your put.io account", func(cmd *cli.Cmd) {
 
+        cmd.Spec = "[DIR]"
+
         parent := cmd.IntArg("DIR", 0, "the id of the directory to list")
 
-        fmt.Println(*parent)
+        cmd.Action = func() {
 
-		c := new(Client)
-		c.Token = *token
+            c := new(Client)
+            c.Token = *token
 
-        // get the list of files and print out the info we care about for each
-		c.ListFiles(*parent)
+            // get the list of files and print out the info we care about for each
+            c.ListFiles(*parent)
+        }
 	})
 
 	prog.Run(os.Args)
@@ -68,8 +72,6 @@ func (c *Client) ListFiles(parent int)  {
     v := url.Values{}
     v.Set("oauth_token", c.Token)
     v.Set("parent_id", strconv.Itoa(parent))
-
-    fmt.Println(v.Encode())
 
     req := &http.Request{
         Method: "GET",
@@ -98,7 +100,12 @@ func (c *Client) ListFiles(parent int)  {
 	var fl FileList
 	err = json.Unmarshal(body, &fl)
 
+    // use a text/tabwriter to align things when they are printed
+    w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
+
     for _, file := range fl.Files {
-        fmt.Println(file.Id, file.Name)
+        fmt.Fprintf(w, "%s\t%d\t%s\n", file.ContentType, file.Id, file.Name)
     }
+
+    w.Flush()
 }
