@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/jawher/mow.cli"
-	"github.com/pivotal-golang/bytefmt"
+	"github.com/mitchellh/ioprogress"
 	"io"
 	"io/ioutil"
 	"log"
@@ -129,7 +129,15 @@ func (c *Client) DownloadFile(id int) {
 		log.Fatal(err)
 	}
 
-	written, err := io.Copy(outfile, resp.Body)
+	// using ioprogress to show the download progress
+	// not a huge fan of this interface, but it works for now
+	progressReader := &ioprogress.Reader{
+		Reader:   resp.Body,
+		Size:     resp.ContentLength,
+		DrawFunc: ioprogress.DrawTerminalf(os.Stdout, ioprogress.DrawTextFormatBytes),
+	}
+
+	_, err = io.Copy(outfile, progressReader)
 
 	if err != nil {
 		// clean up the file
@@ -137,7 +145,7 @@ func (c *Client) DownloadFile(id int) {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("%s saved to %s\n", bytefmt.ByteSize(uint64(written)), outfile.Name())
+	fmt.Printf("file saved to %s\n", outfile.Name())
 
 }
 
