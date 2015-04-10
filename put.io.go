@@ -4,11 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/jawher/mow.cli"
+	"github.com/pivotal-golang/bytefmt"
+	"io"
 	"io/ioutil"
 	"log"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"text/tabwriter"
 )
@@ -45,6 +49,7 @@ func main() {
 	// commands
 	prog.Command("list", "list all files in your put.io account", func(cmd *cli.Cmd) {
 
+		// DIR is optional
 		cmd.Spec = "[DIR]"
 
 		parent := cmd.IntArg("DIR", 0, "the id of the directory to list")
@@ -59,6 +64,20 @@ func main() {
 		}
 	})
 
+	prog.Command("download", "download a specific file (no folders)", func(cmd *cli.Cmd) {
+
+		id := cmd.IntArg("FILE", 0, "the id of the file to download")
+
+		cmd.Action = func() {
+
+			c := new(Client)
+			c.Token = *token
+
+			// download the file to the current working directory
+			c.DownloadFile(*id)
+		}
+	})
+
 	prog.Run(os.Args)
 
 }
@@ -67,11 +86,66 @@ type Client struct {
 	Token string
 }
 
+func (c *Client) DownloadFile(id int) {
+
+	v := url.Values{}
+	v.Set("oauth_token", url.QueryEscape(c.Token))
+
+	req := &http.Request{
+		Method: "GET",
+		Host:   "api.put.io",
+		URL: &url.URL{
+			Host:     "api.put.io",
+			Scheme:   "https",
+			Path:     fmt.Sprintf("/v2/files/%d/download", id),
+			RawQuery: v.Encode(),
+		},
+	}
+
+	var client http.Client
+	resp, err := client.Do(req)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if resp.StatusCode != 200 {
+		log.Fatal(fmt.Sprintf("bad status code from server: %s", resp.Status))
+	}
+
+	_, params, err := mime.ParseMediaType(resp.Header.Get("Content-Disposition"))
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// avoid directory traversal
+	filename := filepath.Base(params["filename"])
+
+	// O_EXCL will not open the file if it already exists
+	outfile, err := os.OpenFile(filename, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0666)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	written, err := io.Copy(outfile, resp.Body)
+
+	if err != nil {
+		// clean up the file
+		os.Remove(outfile.Name())
+		log.Fatal(err)
+	}
+
+	fmt.Printf("%s saved to %s\n", bytefmt.ByteSize(uint64(written)), outfile.Name())
+
+}
+
 func (c *Client) ListFiles(parent int) {
 
 	v := url.Values{}
-	v.Set("oauth_token", c.Token)
-	v.Set("parent_id", strconv.Itoa(parent))
+	v.Set("oauth_token", url.QueryEscape(c.Token))
+	v.Set("parent_id", url.QueryEscape(strconv.Itoa(parent)))
 
 	req := &http.Request{
 		Method: "GET",
